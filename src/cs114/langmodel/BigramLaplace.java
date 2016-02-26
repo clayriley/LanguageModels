@@ -21,11 +21,11 @@ import cs114.util.Pair;
 public class BigramLaplace extends LanguageModel {
 
 	private Counter<Pair<String, String>> bigramCounter = new Counter<Pair<String, String>>();
-    private Set<String> vocabulary;
+    private Set<String> vocabulary; // "Keep it secret...
 	private Counter<String> tokens = new Counter<String>(); // counter for unigrams
     // private Counter<String> lps; // or some other dictionary structure
 	private double totalTokens;
-	private double totalBigrams; // TODO
+	private double totalBigrams;
 	/**
 	 * 
 	 */
@@ -39,40 +39,46 @@ public class BigramLaplace extends LanguageModel {
 	@Override
 	public void train(Collection<List<String>> trainingSentences) {
 		vocabulary = new TreeSet<String>();
-		for (List<String> sent : trainingSentences) { // for each sentence in training data...
-			for (int i = 0; i < sent.size(); i++){ // loop through the sentence
-				if (i==0){
-					Pair<String, String> bigram = new Pair<String, String>(START,sent.get(i)); // first bigram is the START plus the first word
-					bigramCounter.incrementCount(bigram, 1.0);
-					tokens.incrementCount(START, 1.0);
-					tokens.incrementCount(sent.get(i), 1.0);
-				}
-				else { 
-					Pair<String, String> bigram;
-					if (i==sent.size()-1){ // if the last word is reached,
-						bigram = new Pair<String, String>(sent.get(i),STOP); // last bigram is the final word plus the STOP.
-						// update the count of tokens in this training set with STOP
-						tokens.incrementCount(STOP, 1.0);
-						tokens.incrementCount(sent.get(i), 1.0);
+		for (List<String> s : trainingSentences) { // for each sentence in training data...
+			
+			// if the sentence is empty (size = 0), only bigram is START+STOP
+			if (s.size() == 0){
+				Pair<String,String> empty = new Pair<String,String>(START,STOP);
+				bigramCounter.incrementCount(empty, 1.0);
+				tokens.incrementCount(START, 1.0);
+				tokens.incrementCount(STOP, 1.0);
+			}
+			else {
+				// add the start and end to bigram and unigram counters
+				Pair<String,String> start = new Pair<String,String>(START,s.get(0));
+				bigramCounter.incrementCount(start,1.0);
+				tokens.incrementCount(start.getFirst(), 1.0); // add start (context)
+				tokens.incrementCount(start.getSecond(), 1.0); // add first word (word)
+				Pair<String,String> end = new Pair<String,String>(s.get(s.size()-1),STOP);
+				bigramCounter.incrementCount(end, 1.0);
+				tokens.incrementCount(end.getSecond(), 1.0); // only add the end (word)
+				/* 
+				 * if there is only one word in sentence, all three tokens (START,
+				 * w, STOP) and both bigrams (START w, w STOP) have now been added.
+				 */
+				if (s.size() > 1) { // if there are more than 1 word in the sentence, add the rest
+					for (int i = 1; i < s.size(); i++) { // look at all of the rest of the words
+						Pair<String,String> b = new Pair<String,String>(s.get(i-1),s.get(i)); // look at the last and the current word
+						bigramCounter.incrementCount(b, 1.0);
+						// the last was already added to the unigram counter!
+						tokens.incrementCount(b.getSecond(), 1.0);
+						
 					}
-					else {
-						bigram = new Pair<String, String>(sent.get(i),sent.get(i+1)); // all other bigrams are this word plus the next one
-						// update the count of tokens in this training set with the current word
-						tokens.incrementCount(sent.get(i), 1.0);
-					}
-					bigramCounter.incrementCount(bigram, 1.0); // increment the bigram counter
-				}
+				}	
 			}
 		}
-		tokens.incrementCount(UNK, 1.0);
-		totalTokens = tokens.totalCount();
+		tokens.incrementCount(UNK, 1.0); // add UNK smoothing to unigrams
+		totalTokens = tokens.totalCount(); // cache this value!
 		
-		vocabulary.addAll(tokens.keySet());
-		vocabulary = Collections.unmodifiableSet(vocabulary);
+		vocabulary.addAll(tokens.keySet()); // set-ify this
+		vocabulary = Collections.unmodifiableSet(vocabulary); // ...keep it safe"
 		
-		totalBigrams = bigramCounter.totalCount();
-		
-		
+		totalBigrams = bigramCounter.totalCount(); // cache this value!
 	}
 
 	/* (non-Javadoc)
@@ -144,7 +150,8 @@ public class BigramLaplace extends LanguageModel {
         		}
         	}
         }
-        return LanguageModel.STOP; // if we haven't returned anything, return STOP.
+//        return LanguageModel.STOP; // if we haven't returned anything, return STOP.
+        return "FAIL";
 	}
 	
 	/* (non-Javadoc)
@@ -153,11 +160,11 @@ public class BigramLaplace extends LanguageModel {
 	@Override
 	public List<String> generateSentence() {
 		List<String> s = new ArrayList<String>(); // initialize sentence to be output
-		/*String w = getNext(START);
+		String w = getNext(START);
 		while (!w.equals(STOP)){
 			s.add(w);
 			w = getNext(w);
-		}*/
+		}
 		return s;
 	}
 	

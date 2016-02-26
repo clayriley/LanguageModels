@@ -2,7 +2,7 @@
 
 # You may find this shell script helpful.
 
-java -mx200m -cp classes \
+java -mx2g -cp classes \
   cs114.assignments.LanguageModelTester \
   -model cs114.langmodel.BigramLaplace \
   -data      data \
