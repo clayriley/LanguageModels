@@ -20,13 +20,12 @@ import cs114.util.Pair;
  */
 public class BigramLaplace extends LanguageModel {
 
-	private Counter<Pair<String, String>> probCounter = new Counter<Pair<String, String>>();
+	private Counter<Pair<String, String>> bigramCounter = new Counter<Pair<String, String>>();
     private Set<String> vocabulary;
 	private Counter<String> tokens = new Counter<String>(); // counter for unigrams
     // private Counter<String> lps; // or some other dictionary structure
 	private double totalTokens;
 	private double totalBigrams; // TODO
-	
 	/**
 	 * 
 	 */
@@ -39,8 +38,6 @@ public class BigramLaplace extends LanguageModel {
 	 */
 	@Override
 	public void train(Collection<List<String>> trainingSentences) {
-		// create a collection of strings representing a bigram
-		Counter<Pair<String, String>> bigramCounter = new Counter<Pair<String, String>>(); // TODO swap this out for the probCounter
 		vocabulary = new TreeSet<String>();
 		for (List<String> sent : trainingSentences) { // for each sentence in training data...
 			for (int i = 0; i < sent.size(); i++){ // loop through the sentence
@@ -64,31 +61,15 @@ public class BigramLaplace extends LanguageModel {
 						tokens.incrementCount(sent.get(i), 1.0);
 					}
 					bigramCounter.incrementCount(bigram, 1.0); // increment the bigram counter
-				}//TODO get rid of the unk stuff above and below here or at least figure out what it's doing
+				}
 			}
 		}
-		/*
-		 * 
-		// we also need to include the UNKNOWN pairings for each word.
-		for (String w : vocabulary){
-			bigramCounter.incrementCount(w+" "+UNK, 1.0); // 1.0 == Laplace smoothing
-			bigramCounter.incrementCount(UNK+" "+w, 1.0); // 1.0 == Laplace smoothing
-		}
-		// don't forget the other unknown cases!
-		bigramCounter.incrementCount(UNK+" "+UNK, 1.0); // 1.0 == Laplace smoothing
-		bigramCounter.incrementCount(UNK+" "+STOP, 1.0); // 1.0 == Laplace smoothing
-		bigramCounter.incrementCount(START+" "+UNK, 1.0); // 1.0 == Laplace smoothing
-		// add UNK and STOP to the vocabulary
-		 * 
-		 */
 		tokens.incrementCount(UNK, 1.0);
 		totalTokens = tokens.totalCount();
 		
 		vocabulary.addAll(tokens.keySet());
 		vocabulary = Collections.unmodifiableSet(vocabulary);
 		
-		// generate the probability distribution by normalizing the counts to between 0 and 1
-		probCounter = bigramCounter;
 		totalBigrams = bigramCounter.totalCount();
 		
 		
@@ -118,9 +99,9 @@ public class BigramLaplace extends LanguageModel {
 		 */
 		// 5 cases:
 		Pair<String,String> b = new Pair<String,String>(context,w);
-		if (probCounter.containsKey(b)) { // known + known in vocab
+		if (bigramCounter.containsKey(b)) { // known + known in vocab
 			// calculate the smoothed P of that bigram, normalizing appropriately
-			return (probCounter.getCount(b)+1.0)/(tokens.getCount(context)+vocabulary.size()); 
+			return (bigramCounter.getCount(b)+1.0)/(tokens.getCount(context)+vocabulary.size()); 
 		}
 		else if (vocabulary.contains(context) && vocabulary.contains(w)) { // known + known out of vocab
 			return (tokens.getCount(UNK))/(tokens.getCount(context)+vocabulary.size()); // unigram probability bcause we don't have the bigram.  this is not backoff.
@@ -149,21 +130,21 @@ public class BigramLaplace extends LanguageModel {
         double sample = Math.random(); // sets up the random threshold for selection
         double sum = 0.0; // initializes the probability summation for meeting the threshold
 
-        for (Pair<String,String> bigram : probCounter.keySet()) { // look through all bigrams...
+        for (Pair<String,String> bigram : bigramCounter.keySet()) { // look through all bigrams...
         	// and add up the probabilities of each one that starts with the context
         	if (bigram.getFirst() == context){ // if the given context is the first element of the bigram
-        		sum += probCounter.getCount(bigram)/tokens.getCount(context); // add the probability of the bigram given the context
+        		sum += bigramCounter.getCount(bigram)/tokens.getCount(context); // add the probability of the bigram given the context
         		/*
         		 * (why don't we use getWordProbability() instead?
         		 * Because that method is a diagnostic: it shows the likelihood of a new observation.
         		 * This method needs the likelihood of the bigram within the already-sampled corpus.)
         		 */
+        		if (sum > sample) { // if the threshold has been reached
+        			return bigram.getSecond(); // return the second word of the current bigram
+        		}
         	}
-            if (sum > sample) { // if the threshold has been reached
-                return bigram.getSecond(); // return the second word of the current bigram
-            }
         }
-        return LanguageModel.UNK;	
+        return LanguageModel.STOP; // if we haven't returned anything, return STOP.
 	}
 	
 	/* (non-Javadoc)
@@ -172,11 +153,11 @@ public class BigramLaplace extends LanguageModel {
 	@Override
 	public List<String> generateSentence() {
 		List<String> s = new ArrayList<String>(); // initialize sentence to be output
-		String w = getNext(START);
+		/*String w = getNext(START);
 		while (!w.equals(STOP)){
 			s.add(w);
 			w = getNext(w);
-		}
+		}*/
 		return s;
 	}
 	
