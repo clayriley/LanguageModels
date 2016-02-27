@@ -62,7 +62,7 @@ public abstract class LanguageModel {
         double modelsum = 0.0;
         for (String token : getVocabulary()) {
             context.add(token);
-            System.out.println(token); // added by user
+            // System.out.println(token); // added by user
             int lastIndex = context.size() - 1;
             modelsum += getWordProbability(context, lastIndex);
             context.remove(lastIndex);

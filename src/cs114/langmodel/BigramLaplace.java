@@ -81,7 +81,7 @@ public class BigramLaplace extends LanguageModel {
 		
 		totalBigrams = pc.totalCount(); // cache this value!
 		
-		bigramCounter = Counters.normalize(pc); // TODO normalizing bigram counts...
+		bigramCounter = pc; // = Counters.normalize(pc); // TODO normalizing bigram counts...
 	}
 
 	/* (non-Javadoc)
@@ -172,12 +172,12 @@ public class BigramLaplace extends LanguageModel {
 	 */
 	@Override
 	public List<String> generateSentence() {
-		List<String> s = new ArrayList<String>();/* // initialize sentence to be output
+		List<String> s = new ArrayList<String>(); // initialize sentence to be output
 		String w = getNext(START);
 		while (!w.equals(STOP)){
 			s.add(w);
 			w = getNext(w);
-		}*/ // TODO
+		}
 		return s;
 	}
 	
