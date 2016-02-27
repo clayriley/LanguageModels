@@ -7,9 +7,9 @@ java -mx1g -cp classes \
   -model cs114.langmodel.BigramLaplace \
   -data      data \
   -train     train-data.txt \
-  -test      test-data-no-oov-toy.txt \
+  -test      test-data.txt \
   -showguesses       false \
-  -jumble       false \
+  -jumble       true \
   -baselines true \
   -generate  true \
   $@

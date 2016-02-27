@@ -20,7 +20,7 @@ import cs114.util.Pair;
  */
 public class BigramLaplace extends LanguageModel {
 
-	private Counter<Pair<String, String>> bigramCounter; // TODO = new Counter<Pair<String, String>>();
+	private Counter<Pair<String, String>> bigramCounter = new Counter<Pair<String, String>>();
     private Set<String> vocabulary; // "Keep it secret...
 	private Counter<String> tokens = new Counter<String>(); // counter for unigrams
     // private Counter<String> lps; // or some other dictionary structure
@@ -38,24 +38,22 @@ public class BigramLaplace extends LanguageModel {
 	 */
 	@Override
 	public void train(Collection<List<String>> trainingSentences) {
-		// TODO replace all mentions of the below var with bigramCounter...
-		Counter<Pair<String,String>> pc = new Counter<Pair<String,String>>();
 		for (List<String> s : trainingSentences) { // for each sentence in training data...
 			// if the sentence is empty (size = 0), only bigram is START+STOP
 			if (s.size() == 0){
 				Pair<String,String> empty = new Pair<String,String>(START,STOP);
-				pc.incrementCount(empty, 1.0);
+				bigramCounter.incrementCount(empty, 1.0);
 				tokens.incrementCount(START, 1.0);
 				tokens.incrementCount(STOP, 1.0);
 			}
 			else {
 				// add the start and end to bigram and unigram counters
 				Pair<String,String> start = new Pair<String,String>(START,s.get(0));
-				pc.incrementCount(start,1.0);
+				bigramCounter.incrementCount(start,1.0);
 				tokens.incrementCount(start.getFirst(), 1.0); // add start (context)
 				tokens.incrementCount(start.getSecond(), 1.0); // add first word (word)
 				Pair<String,String> end = new Pair<String,String>(s.get(s.size()-1),STOP);
-				pc.incrementCount(end, 1.0);
+				bigramCounter.incrementCount(end, 1.0);
 				tokens.incrementCount(end.getSecond(), 1.0); // only add the end (word)
 				/* 
 				 * if there is only one word in sentence, all three tokens (START,
@@ -64,7 +62,7 @@ public class BigramLaplace extends LanguageModel {
 				if (s.size() > 1) { // if there are more than 1 word in the sentence, add the rest
 					for (int i = 1; i < s.size(); i++) { // look at all of the rest of the words
 						Pair<String,String> b = new Pair<String,String>(s.get(i-1),s.get(i)); // look at the last and the current word
-						pc.incrementCount(b, 1.0);
+						bigramCounter.incrementCount(b, 1.0);
 						// the last was already added to the unigram counter!
 						tokens.incrementCount(b.getSecond(), 1.0);
 						
@@ -79,9 +77,9 @@ public class BigramLaplace extends LanguageModel {
 		vocabulary.addAll(tokens.keySet()); // set-ify this
 		vocabulary = Collections.unmodifiableSet(vocabulary); // ...keep it safe"
 		
-		totalBigrams = pc.totalCount(); // cache this value!
+		totalBigrams = bigramCounter.totalCount(); // cache this value!
 		
-		bigramCounter = pc; // = Counters.normalize(pc); // TODO normalizing bigram counts...
+		// bigramCounter = pc; // = Counters.normalize(pc); // normalizing bigram counts...
 	}
 
 	/* (non-Javadoc)
