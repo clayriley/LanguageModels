@@ -6,8 +6,8 @@ java -mx1g -cp classes \
   cs114.assignments.LanguageModelTester \
   -model cs114.langmodel.BigramLaplace \
   -data      data \
-  -train     train-data.txt \
-  -test      test-data.txt \
+  -train     big-train-data.txt \
+  -test      test-data-no-oov.txt \
   -showguesses       false \
   -jumble       true \
   -baselines true \

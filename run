@@ -4,10 +4,10 @@
 
 java -mx200m -cp classes \
   cs114.assignments.LanguageModelTester \
-  -model cs114.langmodel.Bigram \
+  -model cs114.langmodel.BigramsMini \
   -data      data \
-  -train     train-data.txt \
-  -test      test-data.txt \
+  -train     big-train-data.txt \
+  -test      test-data-no-oov.txt \
   -showguesses       false \
   -jumble       true \
   -baselines true \
