@@ -20,7 +20,7 @@ import cs114.util.Pair;
  */
 public class BigramLaplace extends LanguageModel {
 
-	private Counter<Pair<String, String>> bigramCounter = new Counter<Pair<String, String>>();
+	private Counter<Pair<String, String>> bigramCounter; // TODO = new Counter<Pair<String, String>>();
     private Set<String> vocabulary; // "Keep it secret...
 	private Counter<String> tokens = new Counter<String>(); // counter for unigrams
     // private Counter<String> lps; // or some other dictionary structure
@@ -38,24 +38,24 @@ public class BigramLaplace extends LanguageModel {
 	 */
 	@Override
 	public void train(Collection<List<String>> trainingSentences) {
-		vocabulary = new TreeSet<String>();
+		// TODO replace all mentions of the below var with bigramCounter...
+		Counter<Pair<String,String>> pc = new Counter<Pair<String,String>>();
 		for (List<String> s : trainingSentences) { // for each sentence in training data...
-			
 			// if the sentence is empty (size = 0), only bigram is START+STOP
 			if (s.size() == 0){
 				Pair<String,String> empty = new Pair<String,String>(START,STOP);
-				bigramCounter.incrementCount(empty, 1.0);
+				pc.incrementCount(empty, 1.0);
 				tokens.incrementCount(START, 1.0);
 				tokens.incrementCount(STOP, 1.0);
 			}
 			else {
 				// add the start and end to bigram and unigram counters
 				Pair<String,String> start = new Pair<String,String>(START,s.get(0));
-				bigramCounter.incrementCount(start,1.0);
+				pc.incrementCount(start,1.0);
 				tokens.incrementCount(start.getFirst(), 1.0); // add start (context)
 				tokens.incrementCount(start.getSecond(), 1.0); // add first word (word)
 				Pair<String,String> end = new Pair<String,String>(s.get(s.size()-1),STOP);
-				bigramCounter.incrementCount(end, 1.0);
+				pc.incrementCount(end, 1.0);
 				tokens.incrementCount(end.getSecond(), 1.0); // only add the end (word)
 				/* 
 				 * if there is only one word in sentence, all three tokens (START,
@@ -64,7 +64,7 @@ public class BigramLaplace extends LanguageModel {
 				if (s.size() > 1) { // if there are more than 1 word in the sentence, add the rest
 					for (int i = 1; i < s.size(); i++) { // look at all of the rest of the words
 						Pair<String,String> b = new Pair<String,String>(s.get(i-1),s.get(i)); // look at the last and the current word
-						bigramCounter.incrementCount(b, 1.0);
+						pc.incrementCount(b, 1.0);
 						// the last was already added to the unigram counter!
 						tokens.incrementCount(b.getSecond(), 1.0);
 						
@@ -75,10 +75,13 @@ public class BigramLaplace extends LanguageModel {
 		tokens.incrementCount(UNK, 1.0); // add UNK smoothing to unigrams
 		totalTokens = tokens.totalCount(); // cache this value!
 		
+		vocabulary = new TreeSet<String>();
 		vocabulary.addAll(tokens.keySet()); // set-ify this
 		vocabulary = Collections.unmodifiableSet(vocabulary); // ...keep it safe"
 		
-		totalBigrams = bigramCounter.totalCount(); // cache this value!
+		totalBigrams = pc.totalCount(); // cache this value!
+		
+		bigramCounter = Counters.normalize(pc); // TODO normalizing bigram counts...
 	}
 
 	/* (non-Javadoc)
@@ -87,14 +90,24 @@ public class BigramLaplace extends LanguageModel {
 	@Override
 	public double getWordProbability(List<String> sentence, int index) {		
 		// assign context and word, looking behind
+		
+		
 		String context;
-		String w = sentence.get(index);
-		if (index == 0){
-			context = START;
+		if (index == 0){ // if the index is 0, 
+			context = START; // then the context is <S>.
 		}
-		else {
-			context = sentence.get(index-1);
+		else { // if the index is anything else, 
+			context = sentence.get(index-1); // then the context is the word one back from the index.
 		}
+		String w;
+		if (index == sentence.size()){ // if the index is the sentence size,
+			w = STOP; // then the word is </S>.
+		}
+		else { // if the index is anything else,
+			w = sentence.get(index); // then the word is the word at the index.
+		}
+		
+		
 		/*
 		 * P_Laplace(w_n|w_n−1) = (C(w_n−1, w_n) + 1) / (C(w_n−1) + V)
 		 * The smoothed P of a word given context is equal to
@@ -103,6 +116,7 @@ public class BigramLaplace extends LanguageModel {
 		 * (Why the count of the context?  Because we're normalizing by the sum of all counts of bigrams beginning with the context.
 		 * "(The reader should take a moment to be convinced of this)" -- J&M)
 		 */
+
 		// 5 cases:
 		Pair<String,String> b = new Pair<String,String>(context,w);
 		if (bigramCounter.containsKey(b)) { // known + known in vocab
@@ -138,8 +152,8 @@ public class BigramLaplace extends LanguageModel {
 
         for (Pair<String,String> bigram : bigramCounter.keySet()) { // look through all bigrams...
         	// and add up the probabilities of each one that starts with the context
-        	if (bigram.getFirst() == context){ // if the given context is the first element of the bigram
-        		sum += bigramCounter.getCount(bigram)/tokens.getCount(context); // add the probability of the bigram given the context
+        	if (bigram.getFirst().equals(context)){ // if the given context is the first element of the bigram
+        		sum += ((bigramCounter.getCount(bigram))/(tokens.getCount(context))); // add the probability of the bigram given the context
         		/*
         		 * (why don't we use getWordProbability() instead?
         		 * Because that method is a diagnostic: it shows the likelihood of a new observation.
@@ -150,8 +164,7 @@ public class BigramLaplace extends LanguageModel {
         		}
         	}
         }
-//        return LanguageModel.STOP; // if we haven't returned anything, return STOP.
-        return "FAIL";
+        return LanguageModel.STOP; // if we haven't returned anything, return STOP.
 	}
 	
 	/* (non-Javadoc)
@@ -159,12 +172,12 @@ public class BigramLaplace extends LanguageModel {
 	 */
 	@Override
 	public List<String> generateSentence() {
-		List<String> s = new ArrayList<String>(); // initialize sentence to be output
+		List<String> s = new ArrayList<String>();/* // initialize sentence to be output
 		String w = getNext(START);
 		while (!w.equals(STOP)){
 			s.add(w);
 			w = getNext(w);
-		}
+		}*/ // TODO
 		return s;
 	}
 	

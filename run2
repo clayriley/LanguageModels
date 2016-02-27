@@ -2,14 +2,14 @@
 
 # You may find this shell script helpful.
 
-java -mx2g -cp classes \
+java -mx1g -cp classes \
   cs114.assignments.LanguageModelTester \
   -model cs114.langmodel.BigramLaplace \
   -data      data \
   -train     train-data.txt \
   -test      test-data-no-oov-toy.txt \
   -showguesses       false \
-  -jumble       true \
+  -jumble       false \
   -baselines true \
   -generate  true \
   $@
