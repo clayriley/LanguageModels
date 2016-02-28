@@ -16,21 +16,17 @@ import cs114.util.Pair;
 /**
  * @author clay riley
  * 
- * This LM uses Laplace plus-one smoothing over bigrams.
+ * This LM uses Laplace smoothing over bigrams.
  * 
  */
-public class BLaplaceKatzTiny extends LanguageModel {
+public class BLaplaceTiny extends LanguageModel {
 
 	private Counter<Pair<String, String>> bigramCounter = new Counter<Pair<String, String>>();
     private Set<String> vocabulary; // "Keep it secret...
 	private Counter<String> tokens = new Counter<String>(); // counter for unigrams
-	private double totalTokens;
+	// private double totalTokens;
 	private double smoothing = 0.0011;
 	
-	public BLaplaceKatzTiny() {
-		// Auto-generated constructor stub
-	}
-
 	/* (non-Javadoc)
 	 * @see cs114.langmodel.LanguageModel#train(java.util.Collection)
 	 */
@@ -69,7 +65,7 @@ public class BLaplaceKatzTiny extends LanguageModel {
 			}
 		}
 		// getWordProbability implementation has changed to make this unnecessary: tokens.incrementCount(UNK, smoothing); // add UNK smoothing to unigrams
-		totalTokens = tokens.totalCount(); // cache this value!
+		// totalTokens = tokens.totalCount(); // cache this value!
 		
 		vocabulary = new TreeSet<String>();
 		vocabulary.addAll(tokens.keySet()); // set-ify this
@@ -78,14 +74,13 @@ public class BLaplaceKatzTiny extends LanguageModel {
 		// bigramCounter = pc; // = Counters.normalize(pc); // normalizing bigram counts...
 	}
 
+
 	/* (non-Javadoc)
 	 * @see cs114.langmodel.LanguageModel#getWordProbability(java.util.List, int)
 	 */
 	@Override
 	public double getWordProbability(List<String> sentence, int index) {		
 		// assign context and word, looking behind
-		
-		
 		String context;
 		if (index == 0){ // if the index is 0, 
 			context = START; // then the context is <S>.
@@ -100,8 +95,6 @@ public class BLaplaceKatzTiny extends LanguageModel {
 		else { // if the index is anything else,
 			w = sentence.get(index); // then the word is the word at the index.
 		}
-		
-		
 		/*
 		 * P_Laplace(w_n|w_n−1) = (C(w_n−1, w_n) + 1) / (C(w_n−1) + V)
 		 * The smoothed P of a word given context is equal to
@@ -110,27 +103,33 @@ public class BLaplaceKatzTiny extends LanguageModel {
 		 * (Why the count of the context?  Because we're normalizing by the sum of all counts of bigrams beginning with the context.
 		 * "(The reader should take a moment to be convinced of this)" -- J&M)
 		 */
-
 		// 5 cases:
 		Pair<String,String> b = new Pair<String,String>(context,w);
 		if (bigramCounter.containsKey(b)) { // known + known in vocab
 			// calculate the smoothed P of that bigram, normalizing appropriately
-			return (bigramCounter.getCount(b)+smoothing)/(tokens.getCount(context)+vocabulary.size()*smoothing); 
+			return (bigramCounter.getCount(b)+smoothing)/ 
+					(tokens.getCount(context)+vocabulary.size()*smoothing); 
 		}
-		else if (vocabulary.contains(context) && vocabulary.contains(w)) { // known + known out of vocab
-			return (tokens.getCount(UNK)+smoothing)/(tokens.getCount(context)+vocabulary.size()*smoothing); // unigram probability bcause we don't have the bigram.  this is not backoff.
+		 // bigram does not exist; no backoff.
+		else if (vocabulary.contains(context)) { // known + known out of vocab
+			return (smoothing)/
+					(tokens.getCount(context)+vocabulary.size()*smoothing);
 		}
 		else if (!vocabulary.contains(context) && !vocabulary.contains(w)) { // unknown + unknown
-			return (tokens.getCount(UNK)+smoothing)/(totalTokens+vocabulary.size()*smoothing); // 
+			return (smoothing)/
+					(vocabulary.size()*smoothing); // 
 		}
 		else if (!vocabulary.contains(w)) { // known + unknown
-			return (tokens.getCount(UNK)+smoothing)/(tokens.getCount(context)+vocabulary.size()*smoothing); // == known known oov
+			return (smoothing)/
+					(tokens.getCount(context)+vocabulary.size()*smoothing); // == known known oov
 		}
 		else { // unknown + known
-			return (tokens.getCount(w)+smoothing)/(totalTokens+vocabulary.size()*smoothing);
+			return (smoothing)/
+					(vocabulary.size()*smoothing);
 		}
 	}
-
+	
+	
 	/* (non-Javadoc)
 	 * @see cs114.langmodel.LanguageModel#getVocabulary()
 	 */

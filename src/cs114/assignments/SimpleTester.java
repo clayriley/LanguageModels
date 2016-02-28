@@ -41,7 +41,7 @@ public class SimpleTester {
 
     public static void main(String[] args) {
         LanguageModel model;
-        model = new BigramLaplace();
+        model = new BLaplaceOne();
         ArrayList<List<String>> sentences = new ArrayList<List<String>>();
         sentences.add(Arrays.asList("A B B A".split(" ")));
         sentences.add(Arrays.asList("A B B A A A".split(" ")));

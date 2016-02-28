@@ -31,4 +31,11 @@ public class Triple<F, S, T> {
 
         return true;
     }
+    
+    // added by user Clay Riley
+    public Triple(F first, S second, T third) {
+        this.first = first;
+        this.second = second;
+        this.third = third;
+      }
 }

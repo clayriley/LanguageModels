@@ -355,7 +355,7 @@ public class LanguageModelTester {
     if ("true".equals(options.get("-generate"))) {
       System.out.println();
       System.out.println("Generated sentences:");
-      for (int i = 0; i < 10; i++) {
+      for (int i = 0; i < 30; i++) {
         System.out.println("  " + model.generateSentence());
       }
     }

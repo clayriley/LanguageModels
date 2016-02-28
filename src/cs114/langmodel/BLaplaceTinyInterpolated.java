@@ -11,31 +11,22 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import cs114.util.Counter;
-import cs114.util.Counters;
 import cs114.util.Pair;
 
 /**
  * @author clay riley
  * 
- * This LM uses LaPlace smoothing over bigrams, but with a value smaller than 1.0.
- * In this instance, the value used is 0.0011.
+ * This LM uses Laplace smoothing with interpolation over bigrams.
  * 
  */
-public class BigramsMini extends LanguageModel {
+public class BLaplaceTinyInterpolated extends LanguageModel {
 
 	private Counter<Pair<String, String>> bigramCounter = new Counter<Pair<String, String>>();
     private Set<String> vocabulary; // "Keep it secret...
 	private Counter<String> tokens = new Counter<String>(); // counter for unigrams
-    // private Counter<String> lps; // or some other dictionary structure
 	private double totalTokens;
-	private double totalBigrams;
-	/**
-	 * 
-	 */
-	public BigramsMini() {
-		// Auto-generated constructor stub
-	}
-
+	private double smoothing = 0.003;
+	
 	/* (non-Javadoc)
 	 * @see cs114.langmodel.LanguageModel#train(java.util.Collection)
 	 */
@@ -73,16 +64,32 @@ public class BigramsMini extends LanguageModel {
 				}	
 			}
 		}
-		tokens.incrementCount(UNK, 0.0011); // add UNK smoothing to unigrams
+		// getWordProbability implementation has changed to make this unnecessary: tokens.incrementCount(UNK, smoothing); // add UNK smoothing to unigrams
 		totalTokens = tokens.totalCount(); // cache this value!
 		
 		vocabulary = new TreeSet<String>();
 		vocabulary.addAll(tokens.keySet()); // set-ify this
 		vocabulary = Collections.unmodifiableSet(vocabulary); // ...keep it safe"
-		
-		totalBigrams = bigramCounter.totalCount(); // cache this value!
-		
+				
 		// bigramCounter = pc; // = Counters.normalize(pc); // normalizing bigram counts...
+	}
+
+	private double bProb(String w1, String word){ // gets the bigram probability of word
+		/*
+		 * P(w|context) 
+		 * = C(context, w)+smoothing / C(context)+V*smoothing
+		 */
+		Pair<String,String> b = new Pair<String,String>(w1,word);
+		return (bigramCounter.getCount(b)+smoothing)
+				/(tokens.getCount(w1)+(vocabulary.size()*smoothing));
+	}
+	private double uProb(String word){ // gets the unigram probability of word, Laplace-smoothed
+		/*
+		 * P(w) 
+		 * = C(w)+smoothing / N+V*smoothing
+		 */
+		return (tokens.getCount(word)+smoothing)
+				/(totalTokens+(vocabulary.size()*smoothing));
 	}
 
 	/* (non-Javadoc)
@@ -91,8 +98,6 @@ public class BigramsMini extends LanguageModel {
 	@Override
 	public double getWordProbability(List<String> sentence, int index) {		
 		// assign context and word, looking behind
-		
-		
 		String context;
 		if (index == 0){ // if the index is 0, 
 			context = START; // then the context is <S>.
@@ -108,6 +113,19 @@ public class BigramsMini extends LanguageModel {
 			w = sentence.get(index); // then the word is the word at the index.
 		}
 		
+		/*
+		 * Interpolation:
+		 * all probability types are used to generate a word's probability;
+		 * they are each multiplfied by a lambda factor such that the sum of
+		 * the lambdas is one.
+		 * 
+		 */
+		double lambdaB = 0.75;
+		double lambdaU = 0.25;
+		double bT = lambdaB*bProb(context,w); // calculate bigram probability
+		double uT = lambdaU*uProb(w); // calculate unigram probability
+		return bT+uT;
+		
 		
 		/*
 		 * P_Laplace(w_n|w_n−1) = (C(w_n−1, w_n) + 1) / (C(w_n−1) + V)
@@ -117,27 +135,35 @@ public class BigramsMini extends LanguageModel {
 		 * (Why the count of the context?  Because we're normalizing by the sum of all counts of bigrams beginning with the context.
 		 * "(The reader should take a moment to be convinced of this)" -- J&M)
 		 */
-
+		/*
 		// 5 cases:
 		Pair<String,String> b = new Pair<String,String>(context,w);
 		if (bigramCounter.containsKey(b)) { // known + known in vocab
 			// calculate the smoothed P of that bigram, normalizing appropriately
-			return (bigramCounter.getCount(b)+0.0011)/(tokens.getCount(context)+vocabulary.size()*0.0011); 
+			return (bigramCounter.getCount(b)+smoothing)/ 
+					(tokens.getCount(context)+vocabulary.size()*smoothing); 
 		}
-		else if (vocabulary.contains(context) && vocabulary.contains(w)) { // known + known out of vocab
-			return (tokens.getCount(UNK))/(tokens.getCount(context)+vocabulary.size()*0.0011); // unigram probability bcause we don't have the bigram.  this is not backoff.
+		 // bigram does not exist; no backoff.
+		else if (vocabulary.contains(context)) { // known + known out of vocab
+			return (smoothing)/
+					(tokens.getCount(context)+vocabulary.size()*smoothing);
 		}
 		else if (!vocabulary.contains(context) && !vocabulary.contains(w)) { // unknown + unknown
-			return (tokens.getCount(UNK))/(totalTokens+vocabulary.size()*0.0011); // TODO ???????????????????????
+			return (smoothing)/
+					(vocabulary.size()*smoothing); // 
 		}
 		else if (!vocabulary.contains(w)) { // known + unknown
-			return (tokens.getCount(UNK))/(tokens.getCount(context)+vocabulary.size()*0.0011); // == known known oov
+			return (smoothing)/
+					(tokens.getCount(context)+vocabulary.size()*smoothing); // == known known oov
 		}
 		else { // unknown + known
-			return (tokens.getCount(w)+0.0011)/(totalTokens+vocabulary.size()*0.0011);
+			return (smoothing)/
+					(vocabulary.size()*smoothing);
 		}
+		*/
 	}
-
+	
+	
 	/* (non-Javadoc)
 	 * @see cs114.langmodel.LanguageModel#getVocabulary()
 	 */

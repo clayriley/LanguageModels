@@ -18,16 +18,18 @@ import cs114.util.Pair;
  * 
  * This LM uses Laplace plus-one smoothing over bigrams.
  * 
+ * TODO This LM's functionality is broken in its current implementation.
+ * 
  */
-public class BLaplaceKatzOne extends LanguageModel {
+public class BLaplaceTinyMod extends LanguageModel {
 
 	private Counter<Pair<String, String>> bigramCounter = new Counter<Pair<String, String>>();
     private Set<String> vocabulary; // "Keep it secret...
 	private Counter<String> tokens = new Counter<String>(); // counter for unigrams
 	private double totalTokens;
-	private double smoothing = 1.0;
+	private double smoothing = 0.0011;
 	
-	public BLaplaceKatzOne() {
+	public BLaplaceTinyMod() {
 		// Auto-generated constructor stub
 	}
 
@@ -110,29 +112,24 @@ public class BLaplaceKatzOne extends LanguageModel {
 		 * (Why the count of the context?  Because we're normalizing by the sum of all counts of bigrams beginning with the context.
 		 * "(The reader should take a moment to be convinced of this)" -- J&M)
 		 */
+
 		// 5 cases:
 		Pair<String,String> b = new Pair<String,String>(context,w);
 		if (bigramCounter.containsKey(b)) { // known + known in vocab
 			// calculate the smoothed P of that bigram, normalizing appropriately
-			return (bigramCounter.getCount(b)+smoothing)/
-					(tokens.getCount(context)+vocabulary.size()*smoothing); 
+			return (bigramCounter.getCount(b)+smoothing)/(tokens.getCount(context)+vocabulary.size()*smoothing); 
 		}
-		// we don't have the bigram, so we use the unigram probability. == Katz backoff
 		else if (vocabulary.contains(context) && vocabulary.contains(w)) { // known + known out of vocab
-			return (smoothing)/
-					(tokens.getCount(context)+vocabulary.size()*smoothing); //  // c(w)+smoothing / N+V*smoothing
+			return (tokens.getCount(UNK)+smoothing)/(tokens.getCount(context)+vocabulary.size()*smoothing); // unigram probability bcause we don't have the bigram.  this is not backoff.
 		}
 		else if (!vocabulary.contains(context) && !vocabulary.contains(w)) { // unknown + unknown
-			return (smoothing)/
-					(totalTokens+vocabulary.size()*smoothing); // 
+			return (tokens.getCount(UNK)+smoothing)/(totalTokens+vocabulary.size()*smoothing); // 
 		}
-		else if (!vocabulary.contains(w)) { // known + unknown, == known+known oov
-			return (smoothing)/
-					(tokens.getCount(context)+vocabulary.size()*smoothing); // c(w)+smoothing / N+V*smoothing
+		else if (!vocabulary.contains(w)) { // known + unknown
+			return (tokens.getCount(UNK)+smoothing)/(tokens.getCount(context)+vocabulary.size()*smoothing); // == known known oov
 		}
 		else { // unknown + known
-			return (tokens.getCount(w)+smoothing)/
-					(totalTokens+vocabulary.size()*smoothing); // c(w)+smoothing / N+V*smoothing
+			return (tokens.getCount(w)+smoothing)/(totalTokens+vocabulary.size()*smoothing);
 		}
 	}
 
