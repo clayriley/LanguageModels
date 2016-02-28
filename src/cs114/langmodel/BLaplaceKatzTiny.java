@@ -11,27 +11,23 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import cs114.util.Counter;
-import cs114.util.Counters;
 import cs114.util.Pair;
 
 /**
  * @author clay riley
  * 
- * This LM uses Laplace smoothing over bigrams.
+ * This LM uses Laplace plus-one smoothing over bigrams.
  * 
  */
-public class BigramLaplace extends LanguageModel {
+public class BLaplaceKatzTiny extends LanguageModel {
 
 	private Counter<Pair<String, String>> bigramCounter = new Counter<Pair<String, String>>();
     private Set<String> vocabulary; // "Keep it secret...
 	private Counter<String> tokens = new Counter<String>(); // counter for unigrams
-    // private Counter<String> lps; // or some other dictionary structure
 	private double totalTokens;
-	private double totalBigrams;
-	/**
-	 * 
-	 */
-	public BigramLaplace() {
+	private double smoothing = 0.0011;
+	
+	public BLaplaceKatzTiny() {
 		// Auto-generated constructor stub
 	}
 
@@ -72,15 +68,13 @@ public class BigramLaplace extends LanguageModel {
 				}	
 			}
 		}
-		tokens.incrementCount(UNK, 1.0); // add UNK smoothing to unigrams
+		// getWordProbability implementation has changed to make this unnecessary: tokens.incrementCount(UNK, smoothing); // add UNK smoothing to unigrams
 		totalTokens = tokens.totalCount(); // cache this value!
 		
 		vocabulary = new TreeSet<String>();
 		vocabulary.addAll(tokens.keySet()); // set-ify this
 		vocabulary = Collections.unmodifiableSet(vocabulary); // ...keep it safe"
-		
-		totalBigrams = bigramCounter.totalCount(); // cache this value!
-		
+				
 		// bigramCounter = pc; // = Counters.normalize(pc); // normalizing bigram counts...
 	}
 
@@ -121,19 +115,19 @@ public class BigramLaplace extends LanguageModel {
 		Pair<String,String> b = new Pair<String,String>(context,w);
 		if (bigramCounter.containsKey(b)) { // known + known in vocab
 			// calculate the smoothed P of that bigram, normalizing appropriately
-			return (bigramCounter.getCount(b)+1.0)/(tokens.getCount(context)+vocabulary.size()); 
+			return (bigramCounter.getCount(b)+smoothing)/(tokens.getCount(context)+vocabulary.size()*smoothing); 
 		}
 		else if (vocabulary.contains(context) && vocabulary.contains(w)) { // known + known out of vocab
-			return (tokens.getCount(UNK))/(tokens.getCount(context)+vocabulary.size()); // unigram probability bcause we don't have the bigram.  this is not backoff.
+			return (tokens.getCount(UNK)+smoothing)/(tokens.getCount(context)+vocabulary.size()*smoothing); // unigram probability bcause we don't have the bigram.  this is not backoff.
 		}
 		else if (!vocabulary.contains(context) && !vocabulary.contains(w)) { // unknown + unknown
-			return (tokens.getCount(UNK))/(totalBigrams+vocabulary.size()); // ????????????????????????
+			return (tokens.getCount(UNK)+smoothing)/(totalTokens+vocabulary.size()*smoothing); // 
 		}
 		else if (!vocabulary.contains(w)) { // known + unknown
-			return (tokens.getCount(UNK))/(tokens.getCount(context)+vocabulary.size()); // == known known oov
+			return (tokens.getCount(UNK)+smoothing)/(tokens.getCount(context)+vocabulary.size()*smoothing); // == known known oov
 		}
 		else { // unknown + known
-			return (tokens.getCount(w)+1.0)/(totalTokens+vocabulary.size());
+			return (tokens.getCount(w)+smoothing)/(totalTokens+vocabulary.size()*smoothing);
 		}
 	}
 

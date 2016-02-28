@@ -11,28 +11,23 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import cs114.util.Counter;
-import cs114.util.Counters;
 import cs114.util.Pair;
 
 /**
  * @author clay riley
  * 
- * This LM uses LaPlace smoothing over bigrams, but with a value smaller than 1.0.
- * In this instance, the value used is 0.0011.
+ * This LM uses Laplace plus-one smoothing over bigrams.
  * 
  */
-public class BigramsMini extends LanguageModel {
+public class BLaplaceKatzOne extends LanguageModel {
 
 	private Counter<Pair<String, String>> bigramCounter = new Counter<Pair<String, String>>();
     private Set<String> vocabulary; // "Keep it secret...
 	private Counter<String> tokens = new Counter<String>(); // counter for unigrams
-    // private Counter<String> lps; // or some other dictionary structure
 	private double totalTokens;
-	private double totalBigrams;
-	/**
-	 * 
-	 */
-	public BigramsMini() {
+	private double smoothing = 1.0;
+	
+	public BLaplaceKatzOne() {
 		// Auto-generated constructor stub
 	}
 
@@ -73,15 +68,13 @@ public class BigramsMini extends LanguageModel {
 				}	
 			}
 		}
-		tokens.incrementCount(UNK, 0.0011); // add UNK smoothing to unigrams
+		// getWordProbability implementation has changed to make this unnecessary: tokens.incrementCount(UNK, smoothing); // add UNK smoothing to unigrams
 		totalTokens = tokens.totalCount(); // cache this value!
 		
 		vocabulary = new TreeSet<String>();
 		vocabulary.addAll(tokens.keySet()); // set-ify this
 		vocabulary = Collections.unmodifiableSet(vocabulary); // ...keep it safe"
-		
-		totalBigrams = bigramCounter.totalCount(); // cache this value!
-		
+				
 		// bigramCounter = pc; // = Counters.normalize(pc); // normalizing bigram counts...
 	}
 
@@ -117,24 +110,29 @@ public class BigramsMini extends LanguageModel {
 		 * (Why the count of the context?  Because we're normalizing by the sum of all counts of bigrams beginning with the context.
 		 * "(The reader should take a moment to be convinced of this)" -- J&M)
 		 */
-
 		// 5 cases:
 		Pair<String,String> b = new Pair<String,String>(context,w);
 		if (bigramCounter.containsKey(b)) { // known + known in vocab
 			// calculate the smoothed P of that bigram, normalizing appropriately
-			return (bigramCounter.getCount(b)+0.0011)/(tokens.getCount(context)+vocabulary.size()*0.0011); 
+			return (bigramCounter.getCount(b)+smoothing)/
+					(tokens.getCount(context)+vocabulary.size()*smoothing); 
 		}
+		// we don't have the bigram, so we use the unigram probability. == Katz backoff
 		else if (vocabulary.contains(context) && vocabulary.contains(w)) { // known + known out of vocab
-			return (tokens.getCount(UNK))/(tokens.getCount(context)+vocabulary.size()*0.0011); // unigram probability bcause we don't have the bigram.  this is not backoff.
+			return (smoothing)/
+					(tokens.getCount(context)+vocabulary.size()*smoothing); //  // c(w)+smoothing / N+V*smoothing
 		}
 		else if (!vocabulary.contains(context) && !vocabulary.contains(w)) { // unknown + unknown
-			return (tokens.getCount(UNK))/(totalTokens+vocabulary.size()*0.0011); // TODO ???????????????????????
+			return (smoothing)/
+					(totalTokens+vocabulary.size()*smoothing); // 
 		}
-		else if (!vocabulary.contains(w)) { // known + unknown
-			return (tokens.getCount(UNK))/(tokens.getCount(context)+vocabulary.size()*0.0011); // == known known oov
+		else if (!vocabulary.contains(w)) { // known + unknown, == known+known oov
+			return (smoothing)/
+					(tokens.getCount(context)+vocabulary.size()*smoothing); // c(w)+smoothing / N+V*smoothing
 		}
 		else { // unknown + known
-			return (tokens.getCount(w)+0.0011)/(totalTokens+vocabulary.size()*0.0011);
+			return (tokens.getCount(w)+smoothing)/
+					(totalTokens+vocabulary.size()*smoothing); // c(w)+smoothing / N+V*smoothing
 		}
 	}
 
