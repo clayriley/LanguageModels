@@ -38,6 +38,11 @@ public class TLaplaceTinyInterpolated extends LanguageModel {
 	@Override
 	public void train(Collection<List<String>> trainingSentences) {
 		for (List<String> s : trainingSentences) { // for each sentence in training data...
+			
+			
+			
+			
+			
 			// if the sentence is empty (size = 0), only trigram is START+START+STOP
 			if (s.size() == 0){
 				Triple<String,String,String> empty = new Triple<String,String,String>(START,START,STOP);

@@ -25,7 +25,7 @@ public class BLaplaceTinyInterpolated extends LanguageModel {
     private Set<String> vocabulary; // "Keep it secret...
 	private Counter<String> tokens = new Counter<String>(); // counter for unigrams
 	private double totalTokens;
-	private double smoothing = 0.003;
+	private double smoothing = 0.000001;
 	
 	/* (non-Javadoc)
 	 * @see cs114.langmodel.LanguageModel#train(java.util.Collection)
@@ -120,8 +120,8 @@ public class BLaplaceTinyInterpolated extends LanguageModel {
 		 * the lambdas is one.
 		 * 
 		 */
-		double lambdaB = 0.75;
-		double lambdaU = 0.25;
+		double lambdaB = 0.95;
+		double lambdaU = 0.05;
 		double bT = lambdaB*bProb(context,w); // calculate bigram probability
 		double uT = lambdaU*uProb(w); // calculate unigram probability
 		return bT+uT;
